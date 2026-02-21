@@ -7,6 +7,20 @@
  * [A5紙面サンプル（PDF）](https://github.com/TechBooster/ReVIEW-Template/tree/master/pdf-sample/TechBooster-Template-A5.pdf)
  * [B5紙面電子書籍サンプル（PDF）](https://github.com/TechBooster/ReVIEW-Template/tree/master/pdf-sample/TechBooster-Template-ebook.pdf)
 
+
+## ここだけ読めば多分いけるぜ追記 by ditto
+
+vscodeのdevcontainerで開いて、
+
+```
+$ cd chainlit-techbook/articles
+$ rake pdf
+```
+
+のコマンドでpdfを生成できます。
+
+基本的に```chainlit-techbook/articles/chapters```配下の各自のファイルを編集してください！masterへの直pushを禁止しておくので、各自適当にブランチを切って作業してください。
+
 ## このテンプレートのビルドの仕方は？
 
 細かい準備(TeX入れたり)は[『技術書をかこう！』](https://github.com/TechBooster/C89-FirstStepReVIEW-v2)に準じます。
