@@ -2,7 +2,15 @@ PREDEF:
   - preface.re
 
 CHAPS:
-  - article.re
+  - higuchi.re
+  - hojo.re
+  - ckato.re
+  - kotsubo.re
+  - nagamine.re
+  - satoshinakamura.re
+  - ditto.re
+  - uchiyama.re
+  - yanagi.re
 
 APPENDIX:
 
