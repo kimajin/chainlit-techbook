@@ -276,7 +276,7 @@ Chainlitでは、これらの幅広さに対応して様々な機能が提供さ
 === Message（ @<code>{cl.Message} ）
 
 @<code>{cl.Message} はユーザとアシスタントがやり取りする最も基本的なメッセージです。
-ユーザの入力したメッセージや、アシスタントの出力した回答がこのクラスのインスタントとして表現されます。
+ユーザの入力したメッセージや、アシスタントの出力した回答がこのクラスのインスタンスとして表現されます。
 
 例えば、ユーザーの入力をそのまま出力する場合、実装は以下のようになります。
 
@@ -377,6 +377,120 @@ async def on_message(message: cl.Message) -> None:
 
 === Action（ @<code>{cl.Action} ）
 
+@<code>{cl.Action} は、ユーザがクリックできる「操作ボタン」を表すオブジェクトです。
+@<code>{cl.Action} をメッセージに追加すると、チャット UI 上にボタンとして表示され、ユーザがボタンをクリックすると、アプリケーション側で処理を実行できます。例えば、再実行や確認ダイアログに使うことができます。
+
+以下は、クリック回数を表示する単純なアクションです。
+
+//emlist[@<code>{cl.Action}][python]{
+@cl.action_callback("count_clicks")
+async def count_clicks(action: cl.Action) -> None:
+    await action.remove()
+    count_key = f"count:{action.forId}"
+
+    count = cl.user_session.get(count_key, 0)
+    count += 1
+    cl.user_session.set(count_key, count)
+
+    action.payload["count"] = count
+    action.label = f"Clicked {count} times!"
+    await action.send(for_id=action.forId)
+
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    ...
+    actions = [
+        cl.Action(
+            name="count_clicks",
+            payload={"count": 0},
+            label="Click me!",
+            tooltip="This button will count the number of clicks.",
+            icon="mouse-pointer-click",
+        )
+    ]
+    await cl.Message(
+        content="Let's click some buttons!", actions=actions
+    ).send()
+//}
+
+ * @<code>{Action.name} がアクションの識別子となります。
+ * @<code>{cl.Message} には複数のアクションを付属させることができます。
+ * アクションのボタンが押された場合のコールバックは @<code>{@cl.action_callback("アクション名")} を利用して実装します。
+
+実行すると以下のようにクリックできるボタンが出現し、クリック回数が表示されます。
+
+//image[action][@<code>{cl.Action} の表示][scale=0.8]{
+//}
+
+なお、@<code>{cl.Action}の内容は、データレイヤーの永続化の対象ではありません。
+そのため、例えばタブをリロードすると、メッセージのボタンが無くなります。
+このことから、アクションの選択内容を後で追跡したい場合は、@<code>{cl.Step} に選択結果を記録するなどの対応が必要となります。
+また、確認ダイアログに利用する場合には、「Yes/No」のボタンだけではなく、アシスタントの回答に「良ければYes、良くないならばNoと回答してください」を含めて、チャット再開時の操作に迷わないような回答にするなど、@<code>{cl.Action} の存在を前提にしない設計が必要となりそうです。
+
 === Element（ @<code>{cl.Element} ）
 
-=== Ask User
+アシスタントの回答として画像や動画といった、テキスト以外の要素が含めたいことがあります。
+Chainlitでは、これらの要素を扱うために @<code>{cl.Element} が用意されています。
+
+使い方は以下のように、@<code>{cl.Message} に付属させる形式となります。
+
+//emlist[@<code>{cl.Element}][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    ...
+    elements = [
+        cl.Text(
+            name="text",
+            display="inline",
+            content="a text element with inline display.",
+        ),
+    ]
+    await cl.Message(
+        content="Here are some elements:", elements=elements
+    ).send()
+//}
+
+Chainlitの@<code>{cl.Element}は画像や動画など様々な要素に対応しています。
+対応範囲については以下を参照してください。
+
+ * @<href>{https://docs.chainlit.io/concepts/element}
+ * @<href>{https://docs.chainlit.io/api-reference/elements/custom}
+
+=== Ask User（@<code>{cl.AskMessageBase}）
+
+先程、 @<code>{cl.Action}を使ってユーザーのボタン操作を促す方法を説明しましたが、
+もしユーザーにメッセージ入力を要求をしたい状況では、 @<code>{cl.AskUserMessage} （や @<code>{cl.AskMessageBase} を具象化したその他のクラス）が有用です。
+例えば、以下の例では、アシスタントがユーザーに好きな色を聞いています。
+
+//emlist[ @<code>{cl.AskUserMessage}][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    ...
+    res = await cl.AskUserMessage(
+        content="What is your favorite color?",
+    ).send()
+    if res:
+        await cl.Message(
+            content=f"Your favorite color is {res['output']}"
+        ).send()
+//}
+
+これを実行すると以下のようになります。
+
+//image[ask][@<code>{cl.AskUserMessage}][scale=0.8]{
+//}
+
+実装をみれば分かるように、ユーザーからの回答を待っている間、@<code>{@cl.on_message}のコールバックは処理を停止している状況となります。
+ユーザーが離脱したときに待機し続けてしまうことを避けるため、@<code>{cl.AskUserMessage} にはタイムアウト時間が設定できるようになっています。（デフォルトは60秒。）
+
+== まとめ
+
+本章では、Chainlitの基本的な機能を、シンプルなウェブアプリケーションを例に概観しました。
+
+まず、ログイン機能では、@<code>{@cl.password_auth_callback} を用いたパスワード認証を実装し、これによりアシスタント選択やチャット履歴の永続化などの機能が有効になることを説明しました。
+
+次に、チャット機能として、スターター（@<code>{@cl.set_starters}）によるプリセットメッセージ、アシスタント選択（@<code>{@cl.set_chat_profiles}）、チャット再開（@<code>{@cl.on_chat_resume}）とデータレイヤー（@<code>{@cl.data_layer}）による履歴管理、コマンド設定（@<code>{cl.context.emitter.set_commands}）、チャット設定（@<code>{cl.ChatSettings}）を紹介しました。これらの機能により、ユーザビリティの高いチャットインターフェースを実現できます。
+
+さらに、メッセージ機能では、基本的なメッセージ（@<code>{cl.Message}）、処理過程の可視化（@<code>{cl.Step}）、ユーザー操作のボタン（@<code>{cl.Action}）、テキスト以外の要素（@<code>{cl.Element}）、ユーザー入力の要求（@<code>{cl.AskUserMessage}）を説明しました。これにより、アシスタントの応答を多様な形で表現可能です。
+
+Chainlitは、これらの機能を組み合わせることで、LLMを活用したインタラクティブなアプリケーションを効率的に開発できるフレームワークです。開発者は、認証、UI要素、データ管理の詳細を意識せずに、ビジネスロジックに集中することができます。
