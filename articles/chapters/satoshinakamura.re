@@ -14,7 +14,7 @@
 //image[app_overview][アプリケーション構成図][scale=0.6]{
 //}
 
-== ログイン画面
+== ログイン
 
 ユーザーが Chainlit アプリケーションにアクセスすると、ログイン画面が表示されます。（@<img>{login}）
 今回は、@<code>{@cl.password_auth_callback} デコレーターを修飾したコールバック関数を定義して、パスワード認証を行っています。
@@ -34,7 +34,7 @@ Chainlitはその他の認証方法もサポートしています。詳細は Ch
 
 認証に成功したら @<code>{cl.User} オブジェクトが返され、チャット開始画面へと遷移します。（認証に失敗したら @<code>{None} を返します。）
 
-== チャット開始画面
+== チャット
 
 //image[chat_start][チャット開始画面][scale=0.6]{
 //}
@@ -42,9 +42,9 @@ Chainlitはその他の認証方法もサポートしています。詳細は Ch
 ログイン後のチャット開始画面は @<img>{chat_start} のようになっています。
 メッセージ入力欄以外に、アシスタント選択（画像上部）やスターター（画面中央下部）過去のチャット（画像左）などのUI要素があります。また入力欄直下にも歯車や猫のアイコンも存在しています。
 
-このセクションでは、これらのUI要素の機能と実装方法について説明します。
+このセクションでは、チャット画面のこれらのUI要素に関する、基本的な機能と実装方法について説明します。
 
-=== スターター（ @<code>{@cl.set_starters} ）
+=== スターター設定（ @<code>{@cl.set_starters} ）
 
 スターターは、ユーザーがチャットを開始する際に選択できるプリセットのメッセージです。スターターをクリックすると対応するメッセージが送信され、チャットが開始されます。
 
@@ -68,7 +68,7 @@ async def set_starters() -> list[cl.Starter]:
 
 ChatGPTのモデル切り替えと同様の体験で、アシスタントを選択するUIを提供することが可能です。
 @<fn>{note-on-chat-profile}
-//footnote[note-on-chat-profile][利用には、@<hd>{ログイン画面} で述べた認証機能の有効化が必要となります。]
+//footnote[note-on-chat-profile][利用には、@<hd>{ログイン} で述べた認証機能の有効化が必要となります。]
 
 //image[chat_profile][Chat Profile][scale=0.6]{
 //}
@@ -137,7 +137,7 @@ def data_layer() -> SQLAlchemyDataLayer:
 
  * @<href>{https://docs.chainlit.io/api-reference/data-persistence/custom-data-layer}
 
-=== コマンド（ @<code>{cl.context.emitter.set_commands} ）
+=== コマンド設定（ @<code>{cl.context.emitter.set_commands} ）
 
 メッセージ入力欄の下にあるボタンは、コマンドと呼ばれる機能です。
 ボタンを押すか、Skillsのように「/」から検索して利用することができます。
@@ -257,11 +257,123 @@ async def setup_agent(settings: dict[str, Any]) -> None:
     cl.user_session.set("chat_settings", settings)
 //}
 
-== チャット画面
+== メッセージ
+
+チャット内では、ユーザーとアシスタントのメッセージのやり取りが行われます。
+ユーザーがメッセージを送信すると、@<code>{@cl.on_message} を修飾したコールバック関数が呼び出され、そのなかでアシスタントの処理と返答が行われます。
+
+//image[command_meow_output][チャット画面][scale=0.8]{
+//}
+
+しかし、アシスタントの回答といってもその表示方法は様々です。
+例えば、ChatGPTを見ると、最終的な回答メッセージだけではなく、その間の思考やツールの実行内容が表示されていることが見て取れます。
+また、Claude Code や Codex などのコーディングエージェントを利用すると、時折、エージェントがユーザにYes/Noを提示して許可で求めたり、選択肢を提示して質問を投げかけることがあります。
+
+このようなアシスタントの意図を表すには、メッセージに関する UI 上の工夫が必要です。
+Chainlitでは、これらの幅広さに対応して様々な機能が提供されています。
+そこで、この節では、ChainlitのメッセージのUI要素について、基本的な機能と実装方法を説明します。
 
 === Message（ @<code>{cl.Message} ）
 
+@<code>{cl.Message} はユーザとアシスタントがやり取りする最も基本的なメッセージです。
+ユーザの入力したメッセージや、アシスタントの出力した回答がこのクラスのインスタントとして表現されます。
+
+例えば、ユーザーの入力をそのまま出力する場合、実装は以下のようになります。
+
+//emlist[@<code>{cl.Message}][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    await cl.Message(content=f"Received: {message.content}").send()
+//}
+
+特に、ユーザーの入力メッセージは関数の引数を通じて与えられ、メッセージの文字列は @<code>{content} 属性にあることや、メッセージの送信は @<code>{send()} で行われることが見て取れます。
+
+@<code>{send()} を呼び出すと、背後では以下のことが行われます。
+@<fn>{messagebase-send}
+//footnote[messagebase-send][詳細は @<code>{MessageBase.send()} の実装を参照してください。]
+
+ * UI画面へのメッセージ送信（メッセージが表示される）
+ * （もしあれば）データレイヤーにメッセージのレコードを追加
+ * @<code>{cl.chat_context} にメッセージを追加
+
+最後の @<code>{cl.chat_context} は、チャット内でこれまでやり取りしたメッセージを @<code>{list[cl.Message]} として保存している変数です。
+特に、@<code>{cl.chat_context.get()} や @<code>{cl.chat_context.to_openai()} で取得したメッセージの履歴を LLM の入力として与えるといった使い方ができます。
+
+なお、メッセージの内容は @<code>{update()} や @<code>{remove()} を用いて更新・削除することができます。（@<code>{send()} と同様に、背後で更新・削除が行われます。）
+
+//emlist[ @<code>{update()} 及び @<code>{remove()}][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    msg = cl.Message(content="This message will be updated after 2 seconds.")
+    await msg.send()
+
+    await cl.sleep(2)
+
+    msg.content = "This message will be removed after 2 seconds."
+    await msg.update() # このタイミングでメッセージが更新される
+
+    await cl.sleep(2)
+    await msg.remove() # このタイミングでメッセージが削除される
+//}
+
 === Step（ @<code>{cl.Step} ）
+
+LLM アプリケーションでは、AI がどのように回答に至ったのかをユーザに説明したい場面があります。
+
+例えば次のような情報です。
+
+ * 検索ツールを使った
+ * データベースを参照した
+ * 中間計算を行った
+
+Chainlit では、このような処理過程を可視化するための仕組みとして
+@<code>{cl.Step} が用意されています。
+
+使い方を学ぶため、以下の実装と対応する実行結果を見てみましょう。
+
+//emlist[ @<code>{cl.Step}][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    ...
+    async with cl.Step(
+        name="Step started", # ステップに最初に表示される名前
+        default_open=True,
+    ) as step:
+        await cl.sleep(1)
+        ...
+
+        async with cl.Step(         # ステップはネストすることができます。
+            name="Tool call",       # 表示されるラベル
+            type="tool",            # ステップの種類を表すタグ
+            default_open=True,
+            show_input="python",    # 入力のシンタックスハイライト
+        ) as second:
+            step.name = second.name
+
+            second.input = "add(1, 2)"
+            await step.update()
+            await second.update()
+            await cl.sleep(1)
+            second.output = {"output": 3}
+
+        step.name = "Step completed"
+//}
+
+//image[step][@<code>{cl.Step} の表示][scale=0.8]{
+//}
+
+このネストされたステップを実行すると、以下のように途中経過を表示しながら処理が進みます。
+
+ 1. 親ステップが @<code>{__aenter__()} し、@<code>{send()} により、「使用中：Step started」という文字列と共にステップが表示される。
+ 1. 子ステップが @<code>{__aenter__()} し、ネストされた形で同様に表示される。
+ 1. 子ステップの @<code>{input} と 親ステップの @<code>{name} が更新される。 @<code>{update()} が呼び出されて画面に反映される。
+ 1. 子ステップの @<code>{output} が更新され、子ステップが @<code>{__aexit__()} する。@<code>{__aexit__()} 内部で @<code>{update()} が呼び出されてUIに反映される。
+ 1. 親ステップが @<code>{__aexit__()} する。表示は「使用済み：Step completed」となる。
+
+コンテキストマネージャーのため分かりにくいですが、上の処理をみると @<code>{cl.Step} は @<code>{cl.Message} と同様のメソッドを持っていることが分かります。
+対応して @<code>{cl.Step} の内容も @<code>{cl.Message} と同様にデータレイヤーの @<code>{steps} テーブルに永続化されます。
+一方で、メッセージ履歴を管理する @<code>{cl.chat_context} には反映されません。
+ここから、@<code>{cl.Step} が回答過程を表現する機能であるという意図が読み取れます。
 
 === Action（ @<code>{cl.Action} ）
 
