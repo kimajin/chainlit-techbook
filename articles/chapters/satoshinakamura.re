@@ -95,13 +95,167 @@ async def set_chat_profiles() -> list[cl.ChatProfile]:
 
 === チャット再開（ @<code>{@cl.on_chat_resume} ）
 
-ChatGPTと同様に、@<img>{chat_start}の画面左にはチャット履歴が表示され、チャットを再開することができます。
+ChatGPTと同様に、@<img>{chat_start}の画面左には、ユーザーが過去に行ったチャット履歴が表示され、チャットを再開することができます。
 
-データレイヤーと認証機能を実装することで、チャット履歴の表示と再開が可能となります。
+この機能を利用するためには、認証機能とデータレイヤーを準備し、@<code>{@cl.on_chat_resume} に関する実装を行うという手順を行うこととなります。
+後者の実装は、以下の数行で完了します。
+
+//emlist[Chat Profiles][python]{
+@cl.on_chat_resume
+async def on_chat_resume(_: ThreadDict) -> None:
+    pass
+//}
+
+==== データレイヤー ( @<code>{@cl.data_layer} )
+
+チャットを再開するための当然の前提として、チャット履歴が保存されている必要があります。
+Chainlitはデータレイヤーと呼ばれる抽象化層を通して、チャットデータの保存と取得を行います。
+アプリケーション本体はデータベースの種類を直接意識せず、「データレイヤー」に対してデータの保存や取得を依頼するため、PostgreSQLや独自のストレージなどのさまざまな保存先を柔軟に利用することが可能です。
+
+Chainlit はデータレイヤーの API が実装済みの @<code>{SQLAlchemyDataLayer} を提供しており、開発者はデータベースとテーブルを用意するだけで、データレイヤーとして使うことができます。
+作成するテーブルは以下のリンク先から確認できます。
+
+ * @<href>{https://docs.chainlit.io/data-layers/sqlalchemy}
+
+特に、@<code>{users}、@<code>{threads}、@<code>{steps}というテーブルに、それぞれユーザー、チャット、チャット内のメッセージを永続化しています。@<fn>{note-on-data-layer}
+//footnote[note-on-data-layer][チャットやメッセージは更新と削除が可能であることに対応して、対応するレコードもミュータブルとなっています。特に、イベントをイミュータブルに追加していく構造とはなっていません。]
+
+//image[data_layer][Data Layerの例。 steps テーブルにメッセージが保存されている。][scale=1.0]{
+//}
+
+@<code>{SQLAlchemyDataLayer} を使う場合、アプリ側でのデータレイヤーの実装は以下の数行で済みます。
+
+//emlist[Data Layer][python]{
+@cl.data_layer
+def data_layer() -> SQLAlchemyDataLayer:
+    return SQLAlchemyDataLayer(conninfo=os.environ["CHAINLIT_CONNINFO"])
+//}
+
+ここで、引数 @<code>{conninfo} には、データベースの接続URIを与えています。
+
+なお、Chainlitの @<code>{BaseDataLayer} を具象化することで、カスタムのデータレイヤーを用意することも可能です。その際に実装する API は以下のリンク先から確認できます。
+
+ * @<href>{https://docs.chainlit.io/api-reference/data-persistence/custom-data-layer}
 
 === コマンド（ @<code>{cl.context.emitter.set_commands} ）
 
+メッセージ入力欄の下にあるボタンは、コマンドと呼ばれる機能です。
+ボタンを押すか、Skillsのように「/」から検索して利用することができます。
+//image[command_meow_from_input][Command][scale=0.6]{
+//}
+
+コマンドを選択したあとに、ユーザーがメッセージを送信することで、対応するコマンドの処理が呼び出されます。
+
+//image[command_wc_output][Word Count コマンドの実行結果][scale=0.6]{
+//}
+
+ユーザーが選択したコマンドは、ユーザーの送信した @<code>{cl.Message} の @<code>{command} 属性の文字列から確認でき、アプリケーション側はこの文字列をもとに処理を振り分けます。
+
+//emlist[Command処理の実装][python]{
+@cl.on_message
+async def on_message(message: cl.Message) -> None:
+    if command := message.command:
+        match command:
+            case "Meow":
+                await cl.Message(content="Meow!").send()
+            case "Word Count":
+                word_count = len(message.content.split())
+                await cl.Message(content=f"Word count: {word_count}").send()
+        return
+    ...
+//}
+
+また、コマンドを利用するためには事前にアプリケーション側にコマンドを設定しておくことが必要です。コマンドのメタ情報を @<code>{CommandDict} の辞書として記述し、そのリストを @<code>{cl.context.emitter.set_commands} で送ることで設定します。
+
+//emlist[Commandの設定][python]{
+@cl.on_chat_start
+async def on_chat_start() -> None:
+    ...
+    await cl.context.emitter.set_commands(
+        [
+            {
+                "id": "Meow",
+                "icon": "cat",
+                "description": "Sends a meow message",
+                "button": True,     # ボタンを表示するかどうか
+                "persistent": True, # 実行後もコマンド選択を維持するか
+            },
+            {
+                "id": "Word Count",
+                "icon": "ruler",
+                "description": "Counts the number of words in the message",
+                "button": True,
+                "persistent": True,
+            },
+        ]
+    )
+//}
+
+@<code>{icon} ではボタンに利用する Lucide のアイコン名を与えます。
+
+//image[lucide][Lucide( @<href>{https://lucide.dev/} )][scale=0.8]{
+//}
+
+スターターと異なり、コマンドはユーザーからのメッセージを追加で与えることが可能です。
+また、チャット開始後もコマンドは利用可能です。そのためコマンドを Skills を呼び出す入口として利用するといった使い方ができます。
+
 === チャット設定（ @<code>{cl.ChatSettings} ）
+
+ @<img>{chat_start} では、コマンドボタンと並列する形で歯車のアイコンが存在しています。
+これは、Chat Settings と呼ばれる機能で、チャットの細やかな設定を可能にします。
+典型的には、アシスタントが利用するLLMやそのハイパーパラメータの指定を可能とします。
+
+Chat Settings は @<code>{cl.ChatSettings} を介して設定します。
+入力するウィジェットにはトグルボタンやスライダーなど様々な種類が用意されており、用途に即して使い分けることができます。
+
+//emlist[Chat Settings][python]{
+@cl.on_chat_start
+async def on_chat_start() -> None:
+    await cl.ChatSettings(
+        [
+            Select(
+                id="Thinking mode",
+                label="Thinking mode",
+                values=["fast", "slow"],
+                initial_index=0,
+            ),
+            Slider(
+                id="Creativity",
+                label="Creativity",
+                initial=50,
+                min=0,
+                max=100,
+            ),
+            Switch(
+                id="Enable feature X",
+                label="Enable feature X",
+                initial=False,
+            ),
+            Tags(
+                id="Interests",
+                label="Interests",
+                values=["AI", "Machine Learning", "Data Science"],
+                initial=["AI", "Data Science"],
+            ),
+            TextInput(id="Notes", label="Notes", placeholder="Enter your notes here"),
+        ]
+    ).send()
+    ...
+//}
+
+ユーザーが歯車のアイコンを押すと設定画面がポップアップされます。
+
+//image[chat_setting][チャット設定画面][scale=0.8]{
+//}
+
+設定が更新されると、@<code>{@cl.on_settings_update} に登録した関数が呼び出されます。
+設定をユーザーセッションに保存することで、アプリケーション側が設定内容に応じた処理を行うことができます。
+
+//emlist[Chat Settings Update][python]{
+@cl.on_settings_update
+async def setup_agent(settings: dict[str, Any]) -> None:
+    cl.user_session.set("chat_settings", settings)
+//}
 
 == チャット画面
 
