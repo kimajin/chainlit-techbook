@@ -2,12 +2,12 @@
 = Chainlitの基本機能を概観する
 
 //lead{
-シンプルなウェブアプリケーションを例に、Chainlitの機能を図を多めに説明します。
+豊富な図とともに、Chainlitの機能をシンプルなウェブアプリケーションを通じて解説します。
 //}
 
 == 本章で利用するアプリケーション
 
-本章では、ルールベースで応答するシンプルなウェブアプリケーション @<fn>{support} を例に、Chainlitの機能の説明を行います。アプリ構成は以下の通りで、ユーザーはブラウザからアクセスし、チャットの内容は PostgreSQL データベースに保存されます。
+本章では、ルールベースで応答するシンプルなウェブアプリケーション @<fn>{support} を例に、Chainlitの機能の説明します。アプリケーションの構成は @<img>{app_overview} の通りです。ユーザーはブラウザからアクセスし、チャットの内容は PostgreSQL データベースに保存されます。
 
 //footnote[support][本章のソースコード全体は以下で公開しています。@<href>{https://github.com/xxx/yyy} （※実際のURLに差し替えてください）]
 
@@ -16,7 +16,7 @@
 
 == ログイン
 
-ユーザーが Chainlit アプリケーションにアクセスすると、ログイン画面が表示されます。（@<img>{login}）
+ユーザーが Chainlit アプリケーションにアクセスすると、ログイン画面が表示されます（@<img>{login}）。
 今回は、@<code>{@cl.password_auth_callback} デコレーターを修飾したコールバック関数を定義して、パスワード認証を行っています。
 
 //image[login][ログイン画面][scale=0.6]{
@@ -32,7 +32,7 @@ Chainlitはその他の認証方法もサポートしています。詳細は Ch
 
  * @<href>{https://docs.chainlit.io/authentication/overview}
 
-認証に成功したら @<code>{cl.User} オブジェクトが返され、チャット開始画面へと遷移します。（認証に失敗したら @<code>{None} を返します。）
+認証に成功したら @<code>{cl.User} オブジェクトが返され、チャット開始画面へと遷移します（認証に失敗したら @<code>{None} を返します）。
 
 == チャット
 
@@ -66,9 +66,9 @@ async def set_starters() -> list[cl.Starter]:
 
 === アシスタント選択（ @<code>{@cl.set_chat_profiles} ）
 
-ChatGPTのモデル切り替えと同様の体験で、アシスタントを選択するUIを提供することが可能です。
+ChatGPTのモデル切り替えと同様の体験で、アシスタントを選択するUIを提供できます。
 @<fn>{note-on-chat-profile}
-//footnote[note-on-chat-profile][利用には、@<hd>{ログイン} で述べた認証機能の有効化が必要となります。]
+//footnote[note-on-chat-profile][利用には、@<hd>{ログイン} で述べた認証機能の有効化が必要です。]
 
 //image[chat_profile][Chat Profile][scale=0.6]{
 //}
@@ -95,9 +95,9 @@ async def set_chat_profiles() -> list[cl.ChatProfile]:
 
 === チャット再開（ @<code>{@cl.on_chat_resume} ）
 
-ChatGPTと同様に、@<img>{chat_start}の画面左には、ユーザーが過去に行ったチャット履歴が表示され、チャットを再開することができます。
+ChatGPTと同様に、@<img>{chat_start}の画面左には、ユーザーが過去に行ったチャット履歴が表示され、チャットを再開できます。
 
-この機能を利用するためには、認証機能とデータレイヤーを準備し、@<code>{@cl.on_chat_resume} に関する実装を行うという手順を行うこととなります。
+この機能を利用するためには、認証機能とデータレイヤーの準備に加え、@<code>{@cl.on_chat_resume} の実装が必要になります。
 後者の実装は、以下の数行で完了します。
 
 //emlist[Chat Profiles][python]{
@@ -110,9 +110,9 @@ async def on_chat_resume(_: ThreadDict) -> None:
 
 チャットを再開するための当然の前提として、チャット履歴が保存されている必要があります。
 Chainlitはデータレイヤーと呼ばれる抽象化層を通して、チャットデータの保存と取得を行います。
-アプリケーション本体はデータベースの種類を直接意識せず、「データレイヤー」に対してデータの保存や取得を依頼するため、PostgreSQLや独自のストレージなどのさまざまな保存先を柔軟に利用することが可能です。
+アプリケーション本体はデータベースの種類を直接意識せず、「データレイヤー」に対してデータの保存や取得を依頼するため、PostgreSQLや独自のストレージなどのさまざまな保存先を柔軟に利用できます。
 
-Chainlit はデータレイヤーの API が実装済みの @<code>{SQLAlchemyDataLayer} を提供しており、開発者はデータベースとテーブルを用意するだけで、データレイヤーとして使うことができます。
+Chainlit はデータレイヤーの API が実装済みの @<code>{SQLAlchemyDataLayer} を提供しており、開発者はデータベースとテーブルを用意するだけで、データレイヤーとして使えます。
 作成するテーブルは以下のリンク先から確認できます。
 
  * @<href>{https://docs.chainlit.io/data-layers/sqlalchemy}
@@ -140,7 +140,7 @@ def data_layer() -> SQLAlchemyDataLayer:
 === コマンド設定（ @<code>{cl.context.emitter.set_commands} ）
 
 メッセージ入力欄の下にあるボタンは、コマンドと呼ばれる機能です。
-ボタンを押すか、Skillsのように「/」から検索して利用することができます。
+ボタンを押すか、Skillsのように「/」から検索して利用できます。
 //image[command_meow_from_input][Command][scale=0.6]{
 //}
 
@@ -196,8 +196,8 @@ async def on_chat_start() -> None:
 //image[lucide][Lucide( @<href>{https://lucide.dev/} )][scale=0.8]{
 //}
 
-スターターと異なり、コマンドはユーザーからのメッセージを追加で与えることが可能です。
-また、チャット開始後もコマンドは利用可能です。そのためコマンドを Skills を呼び出す入口として利用するといった使い方ができます。
+スターターと異なり、コマンドはユーザーからのメッセージ追加できます。
+また、コマンドはチャット開始後も利用できます。そのためコマンドを Skills を呼び出す入口として利用するといった使い方ができます。
 
 === チャット設定（ @<code>{cl.ChatSettings} ）
 
@@ -249,7 +249,7 @@ async def on_chat_start() -> None:
 //}
 
 設定が更新されると、@<code>{@cl.on_settings_update} に登録した関数が呼び出されます。
-設定をユーザーセッションに保存することで、アプリケーション側が設定内容に応じた処理を行うことができます。
+設定をユーザーセッションに保存することで、アプリケーション側が設定内容に応じた処理を行えます。
 
 //emlist[Chat Settings Update][python]{
 @cl.on_settings_update
@@ -299,7 +299,7 @@ async def on_message(message: cl.Message) -> None:
 最後の @<code>{cl.chat_context} は、チャット内でこれまでやり取りしたメッセージを @<code>{list[cl.Message]} として保存している変数です。
 特に、@<code>{cl.chat_context.get()} や @<code>{cl.chat_context.to_openai()} で取得したメッセージの履歴を LLM の入力として与えるといった使い方ができます。
 
-なお、メッセージの内容は @<code>{update()} や @<code>{remove()} を用いて更新・削除することができます。（@<code>{send()} と同様に、背後で更新・削除が行われます。）
+なお、メッセージの内容は @<code>{update()} や @<code>{remove()} を用いて更新・削除することができます（@<code>{send()} と同様に、背後で更新・削除が行われます）。
 
 //emlist[ @<code>{update()} 及び @<code>{remove()}][python]{
 @cl.on_message
@@ -429,7 +429,7 @@ async def on_message(message: cl.Message) -> None:
 
 === Element（ @<code>{cl.Element} ）
 
-アシスタントの回答として画像や動画といった、テキスト以外の要素が含めたいことがあります。
+アシスタントの回答として画像や動画といった、テキスト以外の要素を含めたい場合があります。
 Chainlitでは、これらの要素を扱うために @<code>{cl.Element} が用意されています。
 
 使い方は以下のように、@<code>{cl.Message} に付属させる形式となります。
@@ -481,7 +481,7 @@ async def on_message(message: cl.Message) -> None:
 //}
 
 実装をみれば分かるように、ユーザーからの回答を待っている間、@<code>{@cl.on_message}のコールバックは処理を停止している状況となります。
-ユーザーが離脱したときに待機し続けてしまうことを避けるため、@<code>{cl.AskUserMessage} にはタイムアウト時間が設定できるようになっています。（デフォルトは60秒。）
+ユーザーが離脱したときに待機し続けてしまうことを避けるため、@<code>{cl.AskUserMessage} にはタイムアウト時間を設定できます。デフォルトでは60秒後に自動的にタイムアウトします。
 
 == まとめ
 
