@@ -9,7 +9,7 @@
 
 本章では、ルールベースで応答するシンプルなウェブアプリケーション @<fn>{support} を例に、Chainlitの機能を説明します。アプリケーションの構成は @<img>{app_overview} の通りです。ユーザーはブラウザからアクセスし、チャットの内容は PostgreSQL データベースに保存されます。
 
-//footnote[support][本章のソースコード全体は以下で公開しています。@<href>{https://github.com/xxx/yyy} （※実際のURLに差し替えてください）]
+//footnote[support][本章のソースコードは以下から参照できます。@<href>{https://github.com/kimajin/chainlit-playground/tree/main}]
 
 //image[app_overview][アプリケーション構成図][scale=0.6]{
 //}
@@ -191,10 +191,9 @@ async def on_chat_start() -> None:
     )
 //}
 
-@<code>{icon} ではボタンに利用する Lucide のアイコン名を与えます。
+@<code>{icon} の値は Lucide@<fn>{lucide} のアイコン名であり、コマンドのボタンに利用されます。
+//footnote[lucide][@<href>{https://lucide.dev/}]
 
-//image[lucide][Lucide( @<href>{https://lucide.dev/} )][scale=0.8]{
-//}
 
 スターターと異なり、コマンドはユーザーからのメッセージ追加できます。
 また、コマンドはチャット開始後も利用できます。そのためコマンドを Skills を呼び出す入口として利用するといった使い方ができます。
