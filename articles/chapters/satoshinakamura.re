@@ -194,10 +194,7 @@ async def on_chat_start() -> None:
 
 スターターと異なり、ユーザーはコマンドの実行時にメッセージを追加できます。
 また、コマンドはチャット開始後も利用できます。そのため Skills@<fn>{skills} を呼び出す入口として利用するといった使い方ができます。
-//footnote[skills][
- * @<href>{https://code.claude.com/docs/ja/skills}
- * @<href>{https://agentskills.io/home}
-//]
+//footnote[skills][@<href>{https://code.claude.com/docs/ja/skills}]
 
 === チャット設定（ @<code>{cl.ChatSettings} ）
 
