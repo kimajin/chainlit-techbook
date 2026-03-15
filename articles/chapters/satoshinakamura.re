@@ -58,7 +58,7 @@ Chainlitはその他の認証方法もサポートしています。詳細は Ch
 
 //emlist[Starters][python]{
 @cl.set_starters
-async def set_starters() -> list[cl.Starter]:
+async def set_starters(user: cl.User | None) -> list[cl.Starter]:
     return [
         cl.Starter(
             label="Message",        # 表示されるラベル
@@ -66,6 +66,10 @@ async def set_starters() -> list[cl.Starter]:
         ),
         ...
     ]
+//}
+
+スターターを利用すると、対応するメッセージが送信されてチャットが開始されます（@<img>{starter}）。
+//image[starter][スターターの利用画面][scale=0.6]{
 //}
 
 スターターは、ユーザーがチャットを開始する際のガイドとして機能し、特に初めてのユーザーにとって便利です。
@@ -165,7 +169,7 @@ def data_layer() -> SQLAlchemyDataLayer:
 
 コマンドの実行フローは次のとおりです。
 
- * 入力欄のボタン／「/」検索でコマンドを選択する
+ * 入力欄のボタン、もしくは「/」検索でコマンドを選択する
  * メッセージを送信すると、選択したコマンドが @<code>{message.command} に設定される
  * @<code>{message.command} の値に応じて処理を振り分ける
 
@@ -550,9 +554,7 @@ async def on_message(message: cl.Message) -> None:
 
 == まとめ
 
-本章では、シンプルなウェブアプリケーションを例に、Chainlitの基本機能を概観しました。
-
-主なポイントは以下のとおりです。
+本章では、シンプルなウェブアプリケーションを例に、Chainlitの基本機能を概観しました。主なポイントは以下のとおりです。
 
  * ログイン機能：@<code>{@cl.password_auth_callback} によるパスワード認証を導入し、チャット履歴の永続化などの機能を有効にします。
  * チャット機能：
