@@ -327,7 +327,7 @@ async def on_chat_start():
     ]
 
     await cl.Message(
-        content="👋 Welcome! Let's practice English conversation.\n"
+        content="Welcome! Let's practice English conversation.\n"
         "Please choose a topic you'd like to talk about:",
         actions=actions,
     ).send()
